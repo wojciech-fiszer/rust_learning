@@ -22,36 +22,30 @@ impl HttpServer {
                     match stream.read(&mut buffer) {
                         Ok(_) => {
                             println!("Received a request: {}", String::from_utf8_lossy(&buffer));
-                            match Request::try_from(&buffer[..]) {
+                            let response = match Request::try_from(&buffer[..]) {
                                 Ok(request) => {
                                     dbg!(request);
-                                    let response = Response::new(
-                                        StatusCode::NotFound,
+                                    Response::new(
+                                        StatusCode::Ok,
                                         Some("<h1>Hello from my HTTP server</h2>".to_string()),
-                                    );
-                                    match write!(stream, "{}", response) {
-                                        Ok(_) => println!("Responded successfully"),
-                                        Err(e) => {
-                                            println!("Could not write the response: {}", e);
-                                            continue;
-                                        }
-                                    }
+                                    )
                                 }
                                 Err(e) => {
-                                    println!("Could not read request: {}", e);
-                                    continue;
+                                    println!("Failed to parse request: {}", e);
+                                    Response::new(StatusCode::BadRequest, None)
                                 }
+                            };
+                            if let Err(e) = response.send(&mut stream) {
+                                println!("Failed to send response: {}", e);
                             }
                         }
                         Err(e) => {
                             println!("Failed to read the stream: {}", e);
-                            continue;
                         }
                     };
                 }
                 Err(e) => {
                     println!("Failed to establish a connection: {}", e);
-                    continue;
                 }
             };
         }
