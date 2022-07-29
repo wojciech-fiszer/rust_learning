@@ -14,6 +14,18 @@ pub struct Request<'a> {
     method: Method,
 }
 
+impl<'a> Request<'a> {
+    pub fn path(&self) -> &'a str {
+        self.path
+    }
+    pub fn query_string(&self) -> Option<&QueryString<'a>> {
+        self.query_string.as_ref()
+    }
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+}
+
 impl<'buffer> TryFrom<&'buffer [u8]> for Request<'buffer> {
     type Error = ParseError;
     fn try_from(buffer: &'buffer [u8]) -> Result<Self, Self::Error> {
