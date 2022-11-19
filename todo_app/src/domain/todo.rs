@@ -3,18 +3,24 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait TodoRepository {
-    async fn save(&self, todo: Todo) -> Result<Todo>;
-    async fn get_all(&self) -> Result<Vec<Todo>>;
+    async fn insert(&self, title: &str, done: bool) -> Result<Todo>;
+    async fn find_all(&self) -> Result<Vec<Todo>>;
 }
 
 pub struct Todo {
-    pub id: Option<String>,
-    pub title: String,
-    pub done: bool,
+    id: String,
+    title: String,
+    done: bool,
 }
 
 impl Todo {
-    pub fn id(&self) -> &Option<String> {
+    pub fn new(id: String, title: String, done: bool) -> Self {
+        Self { id, title, done }
+    }
+}
+
+impl Todo {
+    pub fn id(&self) -> &str {
         &self.id
     }
     pub fn title(&self) -> &str {
@@ -29,18 +35,12 @@ pub async fn create_todo<T>(repository: &T, title: &str) -> Result<Todo>
 where
     T: TodoRepository,
 {
-    repository
-        .save(Todo {
-            id: None,
-            title: title.to_string(),
-            done: false,
-        })
-        .await
+    repository.insert(title, false).await
 }
 
 pub async fn get_all_todos<T>(repository: &T) -> Result<Vec<Todo>>
 where
     T: TodoRepository,
 {
-    repository.get_all().await
+    repository.find_all().await
 }

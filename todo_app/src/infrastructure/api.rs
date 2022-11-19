@@ -22,7 +22,7 @@ pub fn run_api(listener: TcpListener, db_pool: PgPool) -> Result<Server, io::Err
 }
 
 #[derive(Deserialize)]
-struct TodoCreateRequest {
+struct CreateTodoRequest {
     title: String,
 }
 
@@ -33,19 +33,12 @@ struct TodoDto {
     done: bool,
 }
 
-enum TodoDtoCreatingError {
-    MissingId,
-}
-
 impl TryFrom<&Todo> for TodoDto {
-    type Error = TodoDtoCreatingError;
+    type Error = String;
 
     fn try_from(value: &Todo) -> Result<Self, Self::Error> {
         Ok(TodoDto {
-            id: match value.id() {
-                Some(id) => id.to_string(),
-                None => Err(TodoDtoCreatingError::MissingId)?,
-            },
+            id: value.id().to_string(),
             title: value.title().to_string(),
             done: value.done(),
         })
@@ -54,12 +47,12 @@ impl TryFrom<&Todo> for TodoDto {
 
 async fn handle_post_todos(
     pg_pool: Data<PgPool>,
-    request: Json<TodoCreateRequest>,
+    request: Json<CreateTodoRequest>,
 ) -> impl Responder {
     let repository = PostgresTodoRepository::new(pg_pool.get_ref());
     match create_todo(&repository, &request.title).await {
         Ok(todo) => match TodoDto::try_from(&todo) {
-            Ok(dto) => HttpResponse::Ok().json(dto),
+            Ok(dto) => HttpResponse::Created().json(dto),
             Err(_) => HttpResponse::InternalServerError().finish(),
         },
         Err(_) => HttpResponse::InternalServerError().finish(),
@@ -72,7 +65,7 @@ async fn handle_get_todos(pg_pool: Data<PgPool>) -> impl Responder {
         Ok(todos) => match todos
             .iter()
             .map(move |todo| TodoDto::try_from(todo))
-            .collect::<Result<Vec<TodoDto>, TodoDtoCreatingError>>()
+            .collect::<Result<Vec<TodoDto>, _>>()
         {
             Ok(dtos) => HttpResponse::Ok().json(dtos),
             Err(_) => HttpResponse::InternalServerError().finish(),

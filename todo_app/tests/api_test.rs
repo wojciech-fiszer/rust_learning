@@ -20,5 +20,12 @@ async fn test_create_todo() {
         .send()
         .await
         .expect("Cannot create todo");
-    assert!(response.status().is_success());
+    assert_eq!(201, response.status());
+    assert_eq!(
+        "application/json",
+        response
+            .headers()
+            .get("Content-Type")
+            .expect("Content-Type header is not present")
+    );
 }
